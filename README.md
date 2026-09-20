@@ -9,6 +9,7 @@ README.md この文書です。
 
 memo.md 補足情報などです。
 
+esc_controller_nano_v3.ino 最新版です。v3で安定して駆動します。2026/09/20 17:19確認済み
 
 Mark3-test2026-r4v0.ino 公開されているプログラムを書き込み可能な状態にしたものです。
 
