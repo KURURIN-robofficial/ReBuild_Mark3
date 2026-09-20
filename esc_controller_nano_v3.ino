@@ -5,11 +5,9 @@
 const int Cont_threshold = 3,thgain=1,thgain2=2,thgain3=255,Max=255,th_max=170,th_min=20;
 const uint8_t MOTOR_COUNT = 6,INPUT_COUNT = 17,RX_BUFFER_SIZE = 80;const uint8_t motorPins[MOTOR_COUNT] = {2, 3, 4, 5, 6, 7};
 const unsigned long COMMAND_TIMEOUT_MS = 300UL;
-char receiveData[RX_BUFFER_SIZE];
-uint8_t receiveCount = 0;
+char receiveData[RX_BUFFER_SIZE];uint8_t receiveCount = 0;
 bool discardUntilNewline = false,failsafeActive = true;
-int chkstr[INPUT_COUNT],vector[MOTOR_COUNT];
-Servo th[MOTOR_COUNT];
+int chkstr[INPUT_COUNT],vector[MOTOR_COUNT];Servo th[MOTOR_COUNT];
 unsigned long lastCommandAt = 0;
 static bool parsePacket(char *line, int *destination),readSerialPacket();
 static int fastMixScale(int value),conv(int ins, bool rev);
@@ -17,17 +15,10 @@ static void calculateVectors(),applyVectors(),stopMotors();
 
 void setup() {
   for (uint8_t i = 0; i < MOTOR_COUNT; ++i) {th[i].attach(motorPins[i]);}
-  stopMotors();
-  Serial.begin(115200);
-}
+  stopMotors();Serial.begin(115200);}
 void loop() {
-  if (readSerialPacket()) {
-    calculateVectors();
-    applyVectors();
-    failsafeActive = false;
-  }
-  if (!failsafeActive && (unsigned long)(millis() - lastCommandAt) > COMMAND_TIMEOUT_MS) {stopMotors();failsafeActive = true;}
-}
+  if (readSerialPacket()) {calculateVectors();applyVectors();failsafeActive = false;}
+  if (!failsafeActive && (unsigned long)(millis() - lastCommandAt) > COMMAND_TIMEOUT_MS) {stopMotors();failsafeActive = true;}}
 static bool parsePacket(char *line, int *destination) {
   char *cursor = line;
   for (uint8_t i = 0; i < INPUT_COUNT; ++i) {
@@ -35,33 +26,21 @@ static bool parsePacket(char *line, int *destination) {
     errno = 0;
     const long value = strtol(cursor, &end, 10);
     if (end == cursor || errno == ERANGE || value < INT_MIN || value > INT_MAX) {return false;}
-    if (i + 1U < INPUT_COUNT) {
-      if (*end != ',') {return false;}
-      cursor = end + 1;
-    } else if (*end != '\0') {return false;}
+    if (i + 1U < INPUT_COUNT) {if (*end != ',') {return false;}cursor = end + 1;} else if (*end != '\0') {return false;}
     destination[i] = (int)value;
   }return true;}
 static bool readSerialPacket() {
   bool receivedValidPacket = false;
-
   while (Serial.available() > 0) {
     const char incoming = (char)Serial.read();
-
     if (incoming == '\r') {continue;}
-
     if (incoming == '\n') {
       if (!discardUntilNewline && receiveCount > 0) {
         int candidate[INPUT_COUNT];
         receiveData[receiveCount] = '\0';
-
-        if (parsePacket(receiveData, candidate)) {
-          for (uint8_t i = 0; i < INPUT_COUNT; ++i) {chkstr[i] = candidate[i];}
-          lastCommandAt = millis();
-          receivedValidPacket = true;
-        }
+        if (parsePacket(receiveData, candidate)) {for (uint8_t i = 0; i < INPUT_COUNT; ++i) {chkstr[i] = candidate[i];}lastCommandAt = millis();receivedValidPacket = true;}
       }
-      receiveCount = 0;
-      discardUntilNewline = false;
+      receiveCount = 0;discardUntilNewline = false;
       continue;
     }
     if (discardUntilNewline) {continue;}
@@ -92,6 +71,5 @@ static void applyVectors() {
   th[2].write(conv(vector[1], true));
   th[3].write(conv(vector[2], false));
   th[4].write(conv(vector[3], true));
-  th[5].write(conv(vector[5], false));
-}
+  th[5].write(conv(vector[5], false));}
 static void stopMotors() {for (uint8_t i = 0; i < MOTOR_COUNT; ++i) {vector[i] = 0;}applyVectors();}
